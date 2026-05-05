@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Ang Wee Chee ETF Project</title>
+
+  <!-- PWA / Home Screen Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AWC ETF" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#080810" />
+  <meta name="application-name" content="AWC ETF" />
+
+  <!-- PWA Icon (inline SVG as data URI for self-contained use) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23080810'/%3E%3Ctext x='256' y='300' font-size='220' text-anchor='middle' fill='%23f59e0b' font-family='Arial'%3E%24%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23080810'/%3E%3Ctext x='256' y='300' font-size='220' text-anchor='middle' fill='%23f59e0b' font-family='Arial'%3E%24%3C/text%3E%3C/svg%3E" />
+
+  <!-- Inline Web App Manifest -->
+  <link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Ang%20Wee%20Chee%20ETF%20Project%22%2C%22short_name%22%3A%22AWC%20ETF%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23080810%22%2C%22theme_color%22%3A%22%23f59e0b%22%2C%22orientation%22%3A%22portrait%22%7D" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #080810;
+      color: #e8e8f0;
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      padding-bottom: 48px;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: rgba(245,158,11,0.2);
+      border-radius: 4px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #f59e0b;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(245,158,11,0.5);
+    }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(10,10,20,0) 60%);
+      border-bottom: 1px solid rgba(245,158,11,0.12);
+      padding: 32px 24px 28px;
+      text-align: center;
+    }
+    .header-sub { font-family: 'Bebas Neue'; font-size: 11px; letter-spacing: 6px; color: #f59e0b; margin-bottom: 8px; opacity: 0.7; }
+    .header-title { font-family: 'Bebas Neue'; font-size: clamp(36px,8vw,64px); letter-spacing: 2px; color: #fff; line-height: 1; }
+    .header-etfs { color: rgba(232,232,240,0.4); font-size: 13px; margin-top: 8px; font-family: 'DM Mono', monospace; letter-spacing: 1px; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+
+    /* Summary Cards */
+    .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 28px 0 24px; }
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(245,158,11,0.15);
+      border-radius: 16px;
+      padding: 18px 12px;
+      text-align: center;
+    }
+    .card-label { font-size: 9px; letter-spacing: 2px; color: #f59e0b; opacity: 0.6; font-family: 'DM Mono'; margin-bottom: 6px; text-transform: uppercase; }
+    .card-value { font-size: clamp(16px,3.5vw,26px); font-weight: 600; color: #fff; font-family: 'Bebas Neue'; letter-spacing: 1px; }
+    .card-sub { font-size: 9px; color: rgba(232,232,240,0.35); font-family: 'DM Mono'; margin-top: 4px; }
+
+    /* Panels */
+    .panel {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .panel-label { font-size: 10px; letter-spacing: 3px; color: #f59e0b; opacity: 0.7; font-family: 'DM Mono'; margin-bottom: 16px; text-transform: uppercase; }
+    .panel-label.green { color: #10b981; }
+
+    /* Controls grid */
+    .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media(max-width:540px){ .controls-grid { grid-template-columns: 1fr; } .cards { grid-template-columns: 1fr; } }
+
+    .field-label { font-size: 10px; letter-spacing: 3px; color: #f59e0b; opacity: 0.7; font-family: 'DM Mono'; display: block; margin-bottom: 10px; text-transform: uppercase; }
+    .input-wrap { position: relative; }
+    .input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #f59e0b; font-size: 16px; font-weight: 500; pointer-events: none; }
+    .invest-input {
+      width: 100%;
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px;
+      padding: 12px 14px 12px 30px;
+      color: #fff;
+      font-size: 18px;
+      font-family: 'DM Mono';
+      outline: none;
+    }
+    .presets { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: 'DM Mono';
+      background: rgba(255,255,255,0.04);
+      color: rgba(232,232,240,0.4);
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-btn.active {
+      background: rgba(245,158,11,0.2);
+      color: #f59e0b;
+      border-color: rgba(245,158,11,0.4);
+    }
+    .year-btns { display: flex; justify-content: space-between; margin-top: 6px; }
+    .year-btn {
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-family: 'DM Mono';
+      background: transparent;
+      color: rgba(232,232,240,0.3);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .year-btn.active { background: rgba(245,158,11,0.2); color: #f59e0b; border-color: rgba(245,158,11,0.3); }
+
+    /* ETF grid */
+    .etf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media(max-width:600px){ .etf-grid { grid-template-columns: 1fr 1fr; } }
+    .etf-card {
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 14px 16px;
+      transition: all 0.2s;
+    }
+    .etf-card.off { opacity: 0.4; background: rgba(255,255,255,0.015); }
+    .etf-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .etf-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .etf-name { font-family: 'Bebas Neue'; font-size: 18px; letter-spacing: 1px; color: #fff; margin-left: 8px; }
+    .toggle-btn {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-family: 'DM Mono';
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .etf-yield-row { display: flex; align-items: center; gap: 8px; }
+    .yield-input {
+      width: 70px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 16px;
+      font-family: 'DM Mono';
+      font-weight: 500;
+      outline: none;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .yield-label { font-size: 13px; font-family: 'DM Mono'; }
+
+    /* Chart */
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-family: 'DM Mono'; font-size: 13px; }
+    th { color: rgba(232,232,240,0.4); font-size: 10px; letter-spacing: 2px; text-align: right; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.07); text-transform: uppercase; font-weight: 400; }
+    th:first-child { text-align: left; }
+    td { padding: 8px 10px; text-align: right; }
+    td:first-child { text-align: left; }
+    tr:nth-child(even) { background: rgba(255,255,255,0.01); }
+
+    .footer-note { text-align: center; font-size: 10px; color: rgba(232,232,240,0.2); font-family: 'DM Mono'; margin-top: 20px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-sub">DIVIDEND REINVESTMENT CALCULATOR</div>
+  <div class="header-title">Ang Wee Chee ETF Project</div>
+  <div class="header-etfs">GPIX · GPIQ · JEPI · JEPQ</div>
+</div>
+
+<div class="container">
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Blended Yield</div>
+      <div class="card-value" id="card-yield">—</div>
+      <div class="card-sub">avg across active ETFs</div>
+    </div>
+    <div class="card">
+      <div class="card-label" id="card-monthly-label">Monthly @ Year 10</div>
+      <div class="card-value" id="card-monthly">—</div>
+      <div class="card-sub" id="card-monthly-sub">vs — today</div>
+    </div>
+    <div class="card">
+      <div class="card-label" id="card-portfolio-label">Portfolio @ Year 10</div>
+      <div class="card-value" id="card-portfolio">—</div>
+      <div class="card-sub" id="card-portfolio-sub">from —</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="panel">
+    <div class="controls-grid">
+      <div>
+        <label class="field-label">Initial Investment</label>
+        <div class="input-wrap">
+          <span class="input-prefix">$</span>
+          <input class="invest-input" id="invest-input" type="text" value="500,000" />
+        </div>
+        <div class="presets" id="presets">
+          <button class="preset-btn" data-val="50000">$50K</button>
+          <button class="preset-btn" data-val="100000">$100K</button>
+          <button class="preset-btn" data-val="250000">$250K</button>
+          <button class="preset-btn active" data-val="500000">$500K</button>
+          <button class="preset-btn" data-val="750000">$750K</button>
+          <button class="preset-btn" data-val="1000000">$1M</button>
+          <button class="preset-btn" data-val="1250000">$1.25M</button>
+          <button class="preset-btn" data-val="1500000">$1.5M</button>
+          <button class="preset-btn" data-val="1750000">$1.75M</button>
+          <button class="preset-btn" data-val="2000000">$2M</button>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Time Horizon: <span id="year-display" style="color:#fff">10 Years</span></label>
+        <input type="range" id="year-slider" min="1" max="30" value="10" style="margin-top:18px" />
+        <div class="year-btns" id="year-btns">
+          <button class="year-btn" data-val="5">5yr</button>
+          <button class="year-btn active" data-val="10">10yr</button>
+          <button class="year-btn" data-val="15">15yr</button>
+          <button class="year-btn" data-val="20">20yr</button>
+          <button class="year-btn" data-val="25">25yr</button>
+          <button class="year-btn" data-val="30">30yr</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Contribution -->
+  <div class="panel">
+    <div class="panel-label">Monthly Top-Up Contribution</div>
+    <div class="controls-grid">
+      <div>
+        <label class="field-label">Amount added each month</label>
+        <div class="input-wrap">
+          <span class="input-prefix">$</span>
+          <input class="invest-input" id="contrib-input" type="text" value="0" />
+        </div>
+        <div class="presets" id="contrib-presets">
+          <button class="preset-btn active" data-val="0">None</button>
+          <button class="preset-btn" data-val="500">$500</button>
+          <button class="preset-btn" data-val="1000">$1K</button>
+          <button class="preset-btn" data-val="2000">$2K</button>
+          <button class="preset-btn" data-val="5000">$5K</button>
+          <button class="preset-btn" data-val="10000">$10K</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center">
+        <div style="text-align:center;padding:16px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:14px;width:100%">
+          <div style="font-size:10px;letter-spacing:2px;color:#10b981;opacity:0.7;font-family:'DM Mono';margin-bottom:6px;text-transform:uppercase">Extra contributed over period</div>
+          <div id="total-contrib" style="font-family:'Bebas Neue';font-size:28px;color:#10b981;letter-spacing:1px">$0</div>
+          <div style="font-size:10px;color:rgba(232,232,240,0.3);font-family:'DM Mono';margin-top:4px">total top-up amount</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ETF Controls -->
+  <div class="panel">
+    <div class="panel-label">ETF Yields — Live Data May 2026 · Tap to Toggle / Edit %</div>
+    <div id="alloc-warning" style="display:none;background:rgba(251,113,0,0.12);border:1px solid rgba(251,113,0,0.3);border-radius:8px;padding:8px 12px;font-family:'DM Mono';font-size:11px;color:#fb7230;margin-bottom:12px;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;">
+      <button onclick="coreOnly()" style="padding:5px 14px;border-radius:8px;font-size:11px;font-family:'DM Mono';background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);cursor:pointer;">★ GPIX/GPIQ/JEPI/JEPQ</button>
+      <button onclick="evenSplit()" style="padding:5px 14px;border-radius:8px;font-size:11px;font-family:'DM Mono';background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);cursor:pointer;">↺ Even Split</button>
+    </div>
+    <div class="etf-grid" id="etf-grid"></div>
+  </div>
+
+  <!-- Chart 1 -->
+  <div class="panel">
+    <div class="panel-label">Portfolio Value Growth</div>
+    <div class="chart-wrap"><canvas id="chart-portfolio"></canvas></div>
+  </div>
+
+  <!-- Chart 2 -->
+  <div class="panel">
+    <div class="panel-label green">Monthly Dividend Income</div>
+    <div class="chart-wrap"><canvas id="chart-income"></canvas></div>
+  </div>
+
+  <!-- Table -->
+  <div class="panel" style="overflow-x:auto">
+    <div class="panel-label">Year-by-Year Breakdown</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Portfolio Value</th>
+          <th>Monthly Income</th>
+          <th>Annual Income</th>
+          <th>Growth</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+  <p class="footer-note">Projections assume constant yields and full monthly reinvestment. Actual results will vary.<br>Not financial advice.</p>
+</div>
+
+<script>
+  const ETF_DATA = [
+    { ticker: "GPIX",  yield: 8.15,  color: "#f59e0b" },
+    { ticker: "GPIQ",  yield: 9.84,  color: "#10b981" },
+    { ticker: "JEPI",  yield: 8.35,  color: "#3b82f6" },
+    { ticker: "JEPQ",  yield: 10.47, color: "#a78bfa" },
+    { ticker: "BITO",  yield: 63.0,  color: "#f97316" },
+    { ticker: "ECC",   yield: 39.81, color: "#ec4899" },
+    { ticker: "TOPW",  yield: 56.0,  color: "#06b6d4" },
+    { ticker: "BTCI",  yield: 26.83, color: "#84cc16" },
+    { ticker: "SVOL",  yield: 22.53, color: "#fb7185" },
+    { ticker: "BCAT",  yield: 21.20, color: "#c084fc" },
+    { ticker: "GOF",   yield: 19.09, color: "#fbbf24" },
+    { ticker: "OMAH",  yield: 14.75, color: "#34d399" },
+    { ticker: "PDI",   yield: 15.14, color: "#60a5fa" },
+    { ticker: "QQQI",  yield: 13.88, color: "#f43f5e" },
+    { ticker: "SPYI",  yield: 11.90, color: "#a3e635" },
+    { ticker: "PTY",   yield: 11.35, color: "#38bdf8" },
+    { ticker: "QYLD",  yield: 11.45, color: "#e879f9" },
+    { ticker: "HYT",   yield: 10.85, color: "#4ade80" },
+    { ticker: "SDIV",  yield: 8.80,  color: "#fb923c" },
+  ];
+
+  let etfs = ETF_DATA.map(e => ({ ...e, enabled: true, alloc: +(100/ETF_DATA.length).toFixed(1) }));
+  let investment = 500000;
+  let years = 10;
+  let monthlyContrib = 0;
+
+  function getEnabledAlloc() {
+    // Returns total allocation among enabled ETFs
+    return etfs.filter(e => e.enabled).reduce((s, e) => s + (e.alloc || 0), 0);
+  }
+
+  function normalizeAllocs() {
+    // Auto-balance: distribute remaining % to enabled ETFs when one is toggled
+    const active = etfs.filter(e => e.enabled);
+    if (!active.length) return;
+    const total = active.reduce((s, e) => s + e.alloc, 0);
+    if (Math.abs(total - 100) > 0.5) {
+      const diff = 100 - total;
+      // add the diff to the last active ETF
+      active[active.length - 1].alloc = Math.max(0, +(active[active.length - 1].alloc + diff).toFixed(1));
+    }
+  }
+
+  function getAllocWarning() {
+    const active = etfs.filter(e => e.enabled);
+    const total = active.reduce((s, e) => s + e.alloc, 0);
+    return Math.abs(total - 100) > 0.5 ? total : null;
+  }
+
+  // Build ETF cards
+  function buildEtfGrid() {
+    const grid = document.getElementById("etf-grid");
+    grid.innerHTML = "";
+    const warn = getAllocWarning();
+    // Update warning banner
+    const banner = document.getElementById("alloc-warning");
+    if (warn !== null) {
+      banner.style.display = "block";
+      banner.textContent = `⚠ Allocations total ${warn.toFixed(1)}% — must equal 100% for accurate results`;
+    } else {
+      banner.style.display = "none";
+    }
+
+    etfs.forEach((etf, i) => {
+      const card = document.createElement("div");
+      card.className = "etf-card" + (etf.enabled ? "" : " off");
+      card.id = `etf-card-${i}`;
+      card.style.border = `1px solid ${etf.enabled ? etf.color + "40" : "rgba(255,255,255,0.06)"}`;
+      card.innerHTML = `
+        <div class="etf-top">
+          <div style="display:flex;align-items:center">
+            <div class="etf-dot" style="background:${etf.color};box-shadow:0 0 8px ${etf.color}"></div>
+            <span class="etf-name" style="color:${etf.enabled?'#fff':'rgba(255,255,255,0.4)'}">${etf.ticker}</span>
+          </div>
+          <button class="toggle-btn" id="toggle-${i}"
+            style="background:${etf.enabled ? etf.color+'20' : 'rgba(255,255,255,0.05)'};color:${etf.enabled ? etf.color : 'rgba(255,255,255,0.3)'};border:1px solid ${etf.enabled ? etf.color+'40' : 'rgba(255,255,255,0.1)'}"
+            onclick="toggleEtf(${i})">${etf.enabled ? "ON" : "OFF"}</button>
+        </div>
+        <div class="etf-yield-row" style="margin-bottom:8px">
+          <input class="yield-input" type="number" step="0.1" min="0" max="200"
+            style="color:${etf.color};border-color:${etf.color}30;width:62px"
+            value="${etf.yield}" oninput="updateYield(${i}, this.value)" />
+          <span class="yield-label" style="color:${etf.color}">% yield</span>
+        </div>
+        <div class="etf-yield-row">
+          <input class="yield-input alloc-input" type="number" step="0.1" min="0" max="100"
+            style="color:${etf.enabled ? '#fff' : 'rgba(255,255,255,0.3)'};border-color:rgba(255,255,255,0.15);width:62px;background:rgba(255,255,255,0.06)"
+            value="${etf.alloc}" oninput="updateAlloc(${i}, this.value)" ${etf.enabled ? '' : 'disabled'} />
+          <span class="yield-label" style="color:rgba(232,232,240,0.5)">% alloc</span>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function toggleEtf(i) {
+    etfs[i].enabled = !etfs[i].enabled;
+    const active = etfs.filter(e => e.enabled);
+    if (active.length) {
+      const even = +(100 / active.length).toFixed(1);
+      active.forEach(e => { e.alloc = even; });
+      const total = +(active.reduce((s, e) => s + e.alloc, 0)).toFixed(1);
+      active[active.length - 1].alloc = +(active[active.length - 1].alloc + (100 - total)).toFixed(1);
+    }
+    buildEtfGrid();
+    update();
+  }
+
+  function updateYield(i, val) {
+    etfs[i].yield = parseFloat(val) || 0;
+    update();
+  }
+
+  function updateAlloc(i, val) {
+    etfs[i].alloc = parseFloat(val) || 0;
+    buildEtfGrid();
+    update();
+  }
+
+  function coreOnly() {
+    const core = ["GPIX","GPIQ","JEPI","JEPQ"];
+    etfs.forEach(e => {
+      e.enabled = core.includes(e.ticker);
+      e.alloc = core.includes(e.ticker) ? 25 : 0;
+    });
+    buildEtfGrid();
+    update();
+  }
+
+  function evenSplit() {
+    const active = etfs.filter(e => e.enabled);
+    if (!active.length) return;
+    const even = +(100 / active.length).toFixed(1);
+    active.forEach(e => { e.alloc = even; });
+    // Fix rounding: assign leftover to last ETF so total = exactly 100
+    const total = +(active.reduce((s, e) => s + e.alloc, 0)).toFixed(1);
+    active[active.length - 1].alloc = +(active[active.length - 1].alloc + (100 - total)).toFixed(1);
+    buildEtfGrid();
+    update();
+  }
+
+  function getBlendedYield() {
+    const active = etfs.filter(e => e.enabled);
+    if (!active.length) return 0;
+    const totalAlloc = active.reduce((s, e) => s + e.alloc, 0);
+    if (totalAlloc === 0) return 0;
+    // Weighted yield based on allocation %
+    return active.reduce((s, e) => s + (e.yield * e.alloc / totalAlloc), 0);
+  }
+
+  function calcData() {
+    const monthlyRate = getBlendedYield() / 100 / 12;
+    const rows = [];
+    let pv = investment;
+    for (let y = 0; y <= years; y++) {
+      if (y > 0) {
+        for (let m = 0; m < 12; m++) {
+          pv = pv * (1 + monthlyRate) + monthlyContrib;
+        }
+      }
+      rows.push({ year: y, portfolio: Math.round(pv), monthly: Math.round(pv * monthlyRate) });
+    }
+    return rows;
+  }
+
+  function fmtShort(n) {
+    if (n >= 1e6) return `$${(n/1e6).toFixed(2)}M`;
+    if (n >= 1e3) return `$${(n/1e3).toFixed(1)}K`;
+    return `$${Math.round(n)}`;
+  }
+  function fmtDollar(n) {
+    return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n);
+  }
+  function fmtPct(n) { return `+${Math.round(n)}%`; }
+
+  // Charts
+  let chartPortfolio, chartIncome;
+
+  function initCharts() {
+    const gridColor = "rgba(255,255,255,0.04)";
+    const tickStyle = { color: "rgba(232,232,240,0.3)", font: { family: "DM Mono", size: 11 } };
+
+    const commonOptions = (yFmt) => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: "rgba(10,10,20,0.95)",
+        borderColor: "rgba(245,158,11,0.3)",
+        borderWidth: 1,
+        titleFont: { family: "DM Mono" },
+        bodyFont: { family: "DM Mono" },
+        callbacks: {
+          title: ctx => `Year ${ctx[0].label}`,
+          label: ctx => ` ${ctx.dataset.label}: ${yFmt(ctx.parsed.y)}`
+        }
+      }},
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { ...tickStyle, callback: v => `Yr ${v}` } },
+        y: { grid: { color: gridColor }, ticks: { ...tickStyle, callback: yFmt } }
+      }
+    });
+
+    chartPortfolio = new Chart(document.getElementById("chart-portfolio"), {
+      type: "line",
+      data: { labels: [], datasets: [{ label: "Portfolio Value", data: [], borderColor: "#f59e0b", borderWidth: 2, fill: true, backgroundColor: "rgba(245,158,11,0.08)", tension: 0.4, pointRadius: 0 }] },
+      options: commonOptions(fmtShort)
+    });
+
+    chartIncome = new Chart(document.getElementById("chart-income"), {
+      type: "line",
+      data: { labels: [], datasets: [{ label: "Monthly Income", data: [], borderColor: "#10b981", borderWidth: 2, fill: true, backgroundColor: "rgba(16,185,129,0.08)", tension: 0.4, pointRadius: 0 }] },
+      options: commonOptions(v => `$${(v/1000).toFixed(1)}K`)
+    });
+  }
+
+  function update() {
+    const data = calcData();
+    const blended = getBlendedYield();
+    const last = data[data.length - 1];
+    const first = data[0];
+
+    // Cards
+    document.getElementById("card-yield").textContent = `${blended.toFixed(2)}%`;
+    document.getElementById("card-monthly-label").textContent = `Monthly @ Year ${years}`;
+    document.getElementById("card-monthly").textContent = fmtDollar(last.monthly);
+    document.getElementById("card-monthly-sub").textContent = `vs ${fmtDollar(first.monthly)} today`;
+    document.getElementById("card-portfolio-label").textContent = `Portfolio @ Year ${years}`;
+    document.getElementById("card-portfolio").textContent = fmtShort(last.portfolio);
+    document.getElementById("card-portfolio-sub").textContent = `from ${fmtShort(investment)}`;
+    document.getElementById("total-contrib").textContent = fmtShort(monthlyContrib * years * 12);
+
+    // Charts
+    const labels = data.map(d => d.year);
+    chartPortfolio.data.labels = labels;
+    chartPortfolio.data.datasets[0].data = data.map(d => d.portfolio);
+    chartPortfolio.update();
+    chartIncome.data.labels = labels;
+    chartIncome.data.datasets[0].data = data.map(d => d.monthly);
+    chartIncome.update();
+
+    // Table — show every year or filtered
+    const step = Math.max(1, Math.floor(years / 10));
+    const rows = data.filter((d, i) => i % step === 0 || i === data.length - 1);
+    const tbody = document.getElementById("table-body");
+    tbody.innerHTML = rows.map((d, i) => `
+      <tr style="background:${i%2===0?'rgba(255,255,255,0.01)':'transparent'}">
+        <td style="color:#f59e0b">${d.year}</td>
+        <td style="color:#fff">${fmtDollar(d.portfolio)}</td>
+        <td style="color:#10b981">${fmtDollar(d.monthly)}</td>
+        <td style="color:rgba(232,232,240,0.6)">${fmtDollar(d.monthly*12)}</td>
+        <td style="color:#a78bfa">${d.year===0?"—":fmtPct(((d.portfolio/investment)-1)*100)}</td>
+      </tr>
+    `).join("");
+  }
+
+  // Investment input
+  document.getElementById("invest-input").addEventListener("input", function() {
+    const raw = this.value.replace(/[^0-9]/g, "");
+    const num = parseInt(raw, 10) || 0;
+    investment = num;
+    this.value = num.toLocaleString();
+    // Update preset buttons
+    document.querySelectorAll(".preset-btn").forEach(b => {
+      b.classList.toggle("active", parseInt(b.dataset.val) === num);
+    });
+    update();
+  });
+
+  // Preset buttons
+  document.getElementById("presets").addEventListener("click", function(e) {
+    const btn = e.target.closest(".preset-btn");
+    if (!btn) return;
+    investment = parseInt(btn.dataset.val);
+    document.getElementById("invest-input").value = investment.toLocaleString();
+    document.querySelectorAll(".preset-btn").forEach(b => b.classList.toggle("active", b === btn));
+    update();
+  });
+
+  // Year slider
+  document.getElementById("year-slider").addEventListener("input", function() {
+    years = parseInt(this.value);
+    document.getElementById("year-display").textContent = `${years} Years`;
+    document.querySelectorAll(".year-btn").forEach(b => b.classList.toggle("active", parseInt(b.dataset.val) === years));
+    update();
+  });
+
+  // Year buttons
+  document.getElementById("year-btns").addEventListener("click", function(e) {
+    const btn = e.target.closest(".year-btn");
+    if (!btn) return;
+    years = parseInt(btn.dataset.val);
+    document.getElementById("year-slider").value = years;
+    document.getElementById("year-display").textContent = `${years} Years`;
+    document.querySelectorAll(".year-btn").forEach(b => b.classList.toggle("active", b === btn));
+    update();
+  });
+
+  // Monthly contribution input
+  document.getElementById("contrib-input").addEventListener("input", function() {
+    const raw = this.value.replace(/[^0-9]/g, "");
+    const num = parseInt(raw, 10) || 0;
+    monthlyContrib = num;
+    this.value = num.toLocaleString();
+    document.querySelectorAll("#contrib-presets .preset-btn").forEach(b => {
+      b.classList.toggle("active", parseInt(b.dataset.val) === num);
+    });
+    update();
+  });
+
+  document.getElementById("contrib-presets").addEventListener("click", function(e) {
+    const btn = e.target.closest(".preset-btn");
+    if (!btn) return;
+    monthlyContrib = parseInt(btn.dataset.val);
+    document.getElementById("contrib-input").value = monthlyContrib.toLocaleString();
+    document.querySelectorAll("#contrib-presets .preset-btn").forEach(b => b.classList.toggle("active", b === btn));
+    update();
+  });
+
+  // Init
+  buildEtfGrid();
+  initCharts();
+  update();
+</script>
+</body>
+</html>
